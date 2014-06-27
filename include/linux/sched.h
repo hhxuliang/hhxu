@@ -26,7 +26,8 @@
 #define NULL ((void *) 0)
 #endif
 
-extern int copy_page_tables(unsigned long from, unsigned long to, long size);
+extern int copy_page_tables(unsigned long from, unsigned long to, long size,struct task_struct * p);
+extern unsigned long create_page_tables_by_copy(unsigned long addr,int layer);
 extern int free_page_tables(unsigned long from, unsigned long size);
 
 extern void sched_init(void);

@@ -37,7 +37,7 @@ static inline volatile void oom(void)
 }
 
 #define invalidate() \
-__asm__("movl %%eax,%%cr3"::"a" (0))
+__asm__("movl %%cr3,%%eax;movl %%eax,%%cr3"::)
 
 /* these are not to be changed without changing head.s etc */
 #define LOW_MEM 0x100000
@@ -62,24 +62,21 @@ static unsigned char mem_map [ PAGING_PAGES ] = {0,};
  */
 unsigned long get_free_page(void)
 {
-register unsigned long __res asm("ax");
-
-__asm__("std ; repne ; scasb\n\t"
-	"jne 1f\n\t"
-	"movb $1,1(%%edi)\n\t"
-	"sall $12,%%ecx\n\t"
-	"addl %2,%%ecx\n\t"
-	"movl %%ecx,%%edx\n\t"
-	"movl $1024,%%ecx\n\t"
-	"leal 4092(%%edx),%%edi\n\t"
-	"rep ; stosl\n\t"
-	"movl %%edx,%%eax\n"
-	"1:"
-	:"=a" (__res)
-	:"0" (0),"i" (LOW_MEM),"c" (PAGING_PAGES),
-	"D" (mem_map+PAGING_PAGES-1)
-	);
-return __res;
+	int i = PAGING_PAGES,k=0;
+	unsigned long res = 0;
+	while(i-->0)
+	{
+		if( mem_map[i] == 0) 
+		{
+			mem_map[i] = 1;
+			res = LOW_MEM + (i<<12);
+			do{
+				((int*)res)[k++] = 0;
+			}while(k < 1024);
+			break;
+		}
+	}
+	return res;
 }
 
 /*
@@ -112,7 +109,7 @@ int free_page_tables(unsigned long from,unsigned long size)
 	if (!from)
 		panic("Trying to free up swapper memory space");
 	size = (size + 0x3fffff) >> 22;
-	dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
+	dir = (unsigned long *) (((from>>20) & 0xffc) + current->tss.cr3); /* _pg_dir = 0 */
 	for ( ; size-->0 ; dir++) {
 		if (!(1 & *dir))
 			continue;
@@ -147,7 +144,7 @@ int free_page_tables(unsigned long from,unsigned long size)
  * 1 Mb-range, so the pages can be shared with the kernel. Thus the
  * special case for nr=xxxx.
  */
-int copy_page_tables(unsigned long from,unsigned long to,long size)
+int copy_page_tables(unsigned long from,unsigned long to,long size,struct task_struct * p)
 {
 	unsigned long * from_page_table;
 	unsigned long * to_page_table;
@@ -157,8 +154,8 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 
 	if ((from&0x3fffff) || (to&0x3fffff))
 		panic("copy_page_tables called with wrong alignment");
-	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
-	to_dir = (unsigned long *) ((to>>20) & 0xffc);
+	from_dir = (unsigned long *) (((from>>20) & 0xffc) + p->tss.cr3); /* _pg_dir = cr3 */
+	to_dir = (unsigned long *) (((to>>20) & 0xffc) + p->tss.cr3);
 	size = ((unsigned) (size+0x3fffff)) >> 22;
 	for( ; size-->0 ; from_dir++,to_dir++) {
 		if (1 & *to_dir)
@@ -187,6 +184,56 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 	invalidate();
 	return 0;
 }
+unsigned long create_page_tables_by_copy(unsigned long addr,int layer)
+{
+	unsigned long this_page;
+	unsigned long *p = (unsigned long *)get_free_page();
+	int i=0;
+	for( ; i<1024; i++ )
+	{
+		p[i] = ((unsigned long *)addr)[i];
+		if ((p[i] & 0x1) == 0x1)
+		{
+			if (layer < 1)
+			{
+				p[i] = (0xfff & p[i]) | create_page_tables_by_copy(p[i] & 0xfffff000,1);
+			}else if (layer == 1)
+			{
+				if((p[i] & 0xfffff000) >= LOW_MEM)
+				{
+					this_page = ((p[i] & 0xfffff000) - LOW_MEM) >> 12;
+					if (mem_map[this_page]) 
+						mem_map[this_page]++;
+					p[i] &= ~2;
+					((unsigned long *)addr)[i] &= ~2;
+				}
+			}
+		}
+	}
+	return p;
+}
+void release_page_dir_tables(unsigned long addr,int layer)
+{
+	unsigned long this_page;
+	unsigned long p = 0;
+	int i=0;
+	for( i=0; i<1024; i++ )
+	{
+		p = ((unsigned long *)addr)[i];
+		if ((p & 0x1) == 0x1)
+		{
+			if (layer < 1)
+			{
+				if(i>3)//first 4 page is kernel page should not be released
+					release_page_dir_tables(p & 0xfffff000,1);
+				free_page((long)(p & 0xfffff000));
+			}else if (layer == 1)
+			{
+				free_page((long)(p & 0xfffff000));
+			}
+		}
+	}
+}
 
 /*
  * This function puts a page in memory at the wanted address.
@@ -204,7 +251,7 @@ unsigned long put_page(unsigned long page,unsigned long address)
 		printk("Trying to put page %p at %p\n",page,address);
 	if (mem_map[(page-LOW_MEM)>>12] != 1)
 		printk("mem_map disagrees with %p at %p\n",page,address);
-	page_table = (unsigned long *) ((address>>20) & 0xffc);
+	page_table = (unsigned long *) (current->tss.cr3 + ((address>>20) & 0xffc));
 	if ((*page_table)&1)
 		page_table = (unsigned long *) (0xfffff000 & *page_table);
 	else {
@@ -254,7 +301,7 @@ void do_wp_page(unsigned long error_code,unsigned long address)
 #endif
 	un_wp_page((unsigned long *)
 		(((address>>10) & 0xffc) + (0xfffff000 &
-		*((unsigned long *) ((address>>20) &0xffc)))));
+		*((unsigned long *) ((((address>>20) &0xffc) + current->tss.cr3))))));
 
 }
 
@@ -262,7 +309,7 @@ void write_verify(unsigned long address)
 {
 	unsigned long page;
 
-	if (!( (page = *((unsigned long *) ((address>>20) & 0xffc)) )&1))
+	if (!( (page = *((unsigned long *) (((address>>20) & 0xffc) + current->tss.cr3)) )&1))
 		return;
 	page &= 0xfffff000;
 	page += ((address>>10) & 0xffc);
@@ -297,9 +344,9 @@ static int try_to_share(unsigned long address, struct task_struct * p)
 	unsigned long to_page;
 	unsigned long phys_addr;
 
-	from_page = to_page = ((address>>20) & 0xffc);
-	from_page += ((p->start_code>>20) & 0xffc);
-	to_page += ((current->start_code>>20) & 0xffc);
+	from_page = to_page = (((address>>20) & 0xffc));
+	from_page += (((p->start_code>>20) & 0xffc) + current->tss.cr3);
+	to_page += (((current->start_code>>20) & 0xffc) + current->tss.cr3);
 /* is there a page-directory at from? */
 	from = *(unsigned long *) from_page;
 	if (!(from & 1))

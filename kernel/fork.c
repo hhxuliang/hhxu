@@ -49,14 +49,17 @@ int copy_mem(int nr,struct task_struct * p)
 		panic("We don't support separate I&D");
 	if (data_limit < code_limit)
 		panic("Bad data_limit");
-	new_data_base = new_code_base = nr * 0x4000000;
+	new_data_base = new_code_base = 1 * 0x4000000;//all task start from 64M
 	p->start_code = new_code_base;
 	set_base(p->ldt[1],new_code_base);
 	set_base(p->ldt[2],new_data_base);
-	if (copy_page_tables(old_data_base,new_data_base,data_limit)) {
+	if( nr == 1 )//only need to create 1st task by copy mem tables
+	{
+		if (copy_page_tables(old_data_base,new_data_base,data_limit,p)) {
 		printk("free_page_tables: from copy_mem\n");
 		free_page_tables(new_data_base,data_limit);
 		return -ENOMEM;
+		}
 	}
 	return 0;
 }
@@ -113,6 +116,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 	p->tss.trace_bitmap = 0x80000000;
 	if (last_task_used_math == current)
 		__asm__("clts ; fnsave %0"::"m" (p->tss.i387));
+	p->tss.cr3 = create_page_tables_by_copy(current->tss.cr3,0);
 	if (copy_mem(nr,p)) {
 		task[nr] = NULL;
 		free_page((long) p);

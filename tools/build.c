@@ -34,14 +34,16 @@
 
 #define SYS_SIZE 0x3000
 
-#define DEFAULT_MAJOR_ROOT 2
-#define DEFAULT_MINOR_ROOT 0x1d
+#define DEFAULT_MAJOR_ROOT 3
+#define DEFAULT_MINOR_ROOT 0x01
 
 /* max nr of sectors of setup: don't change unless you also change
  * bootsect etc */
 #define SETUP_SECTS 4
 
 #define STRINGIFY(x) #x
+#define MAJOR(a) (((unsigned)(a))>>8)
+#define MINOR(a) ((a)&0xff)
 
 void die(char * str)
 {

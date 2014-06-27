@@ -25,6 +25,8 @@ void release(struct task_struct * p)
 	for (i=1 ; i<NR_TASKS ; i++)
 		if (task[i]==p) {
 			task[i]=NULL;
+			release_page_dir_tables(p->tss.cr3,0);
+			free_page((long)p->tss.cr3);
 			free_page((long)p);
 			schedule();
 			return;
