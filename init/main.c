@@ -95,9 +95,9 @@ static void time_init(void)
 	startup_time = kernel_mktime(&time);
 }
 
-static long memory_end = 0;
-static long buffer_memory_end = 0;
-static long main_memory_start = 0;
+long memory_end = 0;
+long buffer_memory_end = 0;
+long main_memory_start = 0;
 
 struct drive_info { char dummy[32]; } drive_info;
 

@@ -50,6 +50,7 @@ __asm__("movl %%cr3,%%eax;movl %%eax,%%cr3"::)
 current->start_code + current->end_code)
 
 static long HIGH_MEMORY = 0;
+extern int main_memory_start;
 
 #define copy_page(from,to) \
 __asm__("cld ; rep ; movsl"::"S" (from),"D" (to),"c" (1024))
@@ -90,7 +91,8 @@ void free_page(unsigned long addr)
 		panic("trying to free nonexistent page");
 	addr -= LOW_MEM;
 	addr >>= 12;
-	if (mem_map[addr]--) return;
+	
+	if (mem_map[addr] == 0 || mem_map[addr]--) return;
 	mem_map[addr]=0;
 	panic("trying to free free page");
 }
@@ -184,6 +186,7 @@ int copy_page_tables(unsigned long from,unsigned long to,long size,struct task_s
 	invalidate();
 	return 0;
 }
+
 unsigned long create_page_tables_by_copy(unsigned long addr,int layer)
 {
 	unsigned long this_page;
@@ -194,22 +197,27 @@ unsigned long create_page_tables_by_copy(unsigned long addr,int layer)
 		p[i] = ((unsigned long *)addr)[i];
 		if ((p[i] & 0x1) == 0x1)
 		{
-			if (layer < 1)
+			if (layer < 1 && i>=4)//must i>=4 for kernel mem is not to waster mem page
 			{
 				p[i] = (0xfff & p[i]) | create_page_tables_by_copy(p[i] & 0xfffff000,1);
 			}else if (layer == 1)
 			{
-				if((p[i] & 0xfffff000) >= LOW_MEM)
+				if((p[i] & 0xfffff000) >= main_memory_start)
 				{
 					this_page = ((p[i] & 0xfffff000) - LOW_MEM) >> 12;
 					if (mem_map[this_page]) 
+					{
 						mem_map[this_page]++;
-					p[i] &= ~2;
-					((unsigned long *)addr)[i] &= ~2;
+						p[i] &= ~2;
+						((unsigned long *)addr)[i] &= ~2;
+					}
+					else
+						printk("Error memory map!index is %p\n",this_page);
 				}
 			}
 		}
 	}
+	invalidate();
 	return p;
 }
 void release_page_dir_tables(unsigned long addr,int layer)
@@ -220,12 +228,11 @@ void release_page_dir_tables(unsigned long addr,int layer)
 	for( i=0; i<1024; i++ )
 	{
 		p = ((unsigned long *)addr)[i];
-		if ((p & 0x1) == 0x1)
+		if ((p & 0x1) == 0x1 && (p & 0xfffff000) >= main_memory_start)
 		{
 			if (layer < 1)
 			{
-				if(i>3)//first 4 page is kernel page should not be released
-					release_page_dir_tables(p & 0xfffff000,1);
+				release_page_dir_tables(p & 0xfffff000,1);
 				free_page((long)(p & 0xfffff000));
 			}else if (layer == 1)
 			{
@@ -233,6 +240,7 @@ void release_page_dir_tables(unsigned long addr,int layer)
 			}
 		}
 	}
+	invalidate();
 }
 
 /*
