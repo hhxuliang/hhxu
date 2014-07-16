@@ -65,3 +65,7 @@ __asm__ ("movw $104,%1\n\t" \
 #define set_tss_desc(n,addr) _set_tssldt_desc(((char *) (n)),((int)(addr)),"0x89")
 #define set_ldt_desc(n,addr) _set_tssldt_desc(((char *) (n)),((int)(addr)),"0x82")
 
+#define save_flags(x) \
+__asm__ __volatile__("pushfl ; popl %0":"=r" (x): /* no input */ :"memory")
+#define restore_flags(x) \
+__asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"r" (x):"memory")

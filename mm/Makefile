@@ -1,5 +1,5 @@
 CC	=gcc -mcpu=i386
-CFLAGS	=-Wall -O -g -fstrength-reduce -fomit-frame-pointer \
+CFLAGS	=-Wall  -g -fstrength-reduce -fomit-frame-pointer \
 	-finline-functions -nostdinc -I../include
 AS	=as
 AR	=ar
@@ -15,7 +15,7 @@ CPP	=gcc -E -nostdinc -I../include
 	$(CC) $(CFLAGS) \
 	-S -o $*.s $<
 
-OBJS	= memory.o page.o
+OBJS	= memory.o page.o kmalloc.o
 
 all: mm.o
 

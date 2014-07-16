@@ -23,7 +23,7 @@ CPP	=cpp -nostdinc -Iinclude
 ROOT_DEV= #FLOPPY 
 
 ARCHIVES=kernel/kernel.o mm/mm.o fs/fs.o
-DRIVERS =kernel/blk_drv/blk_drv.a kernel/chr_drv/chr_drv.a
+DRIVERS =kernel/blk_drv/blk_drv.a kernel/chr_drv/chr_drv.a net/net.o
 MATH	=kernel/math/math.a
 LIBS	=lib/lib.a
 
@@ -55,7 +55,7 @@ boot/head.o: boot/head.s
 	gcc -I./include -traditional -c boot/head.s
 	mv head.o boot/
 
-tools/system:	boot/head.o init/main.o \
+tools/system:	boot/head.o init/main.o net/net.o \
 		$(ARCHIVES) $(DRIVERS) $(MATH) $(LIBS)
 	$(LD) $(LDFLAGS) boot/head.o init/main.o \
 	$(ARCHIVES) \
@@ -80,6 +80,8 @@ kernel/kernel.o:
 mm/mm.o:
 	(cd mm; make)
 
+net/net.o:
+	(cd net; make)
 fs/fs.o:
 	(cd fs; make)
 
@@ -106,6 +108,7 @@ clean:
 	(cd fs;make clean)
 	(cd kernel;make clean)
 	(cd lib;make clean)
+	(cd net;make clean)
 
 backup: clean
 	(cd .. ; tar cf - linux | compress16 - > backup.Z)

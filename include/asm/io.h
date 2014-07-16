@@ -22,3 +22,23 @@ __asm__ volatile ("inb %%dx,%%al\n" \
 	"1:":"=a" (_v):"d" (port)); \
 _v; \
 })
+
+#define __INS(s) \
+extern inline void ins##s(unsigned short port, void * addr, unsigned long count) \
+{ __asm__ __volatile__ ("cld ; rep ; ins" #s \
+: "=D" (addr), "=c" (count) : "d" (port),"0" (addr),"1" (count)); }
+
+#define __OUTS(s) \
+extern inline void outs##s(unsigned short port, const void * addr, unsigned long count) \
+{ __asm__ __volatile__ ("cld ; rep ; outs" #s \
+: "=S" (addr), "=c" (count) : "d" (port),"0" (addr),"1" (count)); }
+
+
+__INS(b)
+__INS(w)
+__INS(l)
+
+__OUTS(b)
+__OUTS(w)
+__OUTS(l)
+
