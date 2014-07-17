@@ -105,7 +105,7 @@ int sys_time(long * tloc)
 
 	i = CURRENT_TIME;
 	if (tloc) {
-		verify_area(tloc,4);
+		verify_area(VERIFY_WRITE,tloc,4);
 		put_fs_long(i,(unsigned long *)tloc);
 	}
 	return i;
@@ -156,7 +156,7 @@ int sys_stime(long * tptr)
 int sys_times(struct tms * tbuf)
 {
 	if (tbuf) {
-		verify_area(tbuf,sizeof *tbuf);
+		verify_area(VERIFY_WRITE,tbuf,sizeof *tbuf);
 		put_fs_long(current->utime,(unsigned long *)&tbuf->tms_utime);
 		put_fs_long(current->stime,(unsigned long *)&tbuf->tms_stime);
 		put_fs_long(current->cutime,(unsigned long *)&tbuf->tms_cutime);
@@ -221,7 +221,7 @@ int sys_uname(struct utsname * name)
 	int i;
 
 	if (!name) return -ERROR;
-	verify_area(name,sizeof *name);
+	verify_area(VERIFY_WRITE,name,sizeof *name);
 	for(i=0;i<sizeof *name;i++)
 		put_fs_byte(((char *) &thisname)[i],i+(char *) name);
 	return 0;

@@ -57,7 +57,7 @@ static int get_termios(struct tty_struct * tty, struct termios * termios)
 {
 	int i;
 
-	verify_area(termios, sizeof (*termios));
+	verify_area(VERIFY_WRITE, termios, sizeof (*termios));
 	for (i=0 ; i< (sizeof (*termios)) ; i++)
 		put_fs_byte( ((char *)&tty->termios)[i] , i+(char *)termios );
 	return 0;
@@ -78,7 +78,7 @@ static int get_termio(struct tty_struct * tty, struct termio * termio)
 	int i;
 	struct termio tmp_termio;
 
-	verify_area(termio, sizeof (*termio));
+	verify_area(VERIFY_WRITE,termio, sizeof (*termio));
 	tmp_termio.c_iflag = tty->termios.c_iflag;
 	tmp_termio.c_oflag = tty->termios.c_oflag;
 	tmp_termio.c_cflag = tty->termios.c_cflag;
@@ -165,18 +165,18 @@ int tty_ioctl(int dev, int cmd, int arg)
 		case TIOCSCTTY:
 			return -EINVAL; /* set controlling term NI */
 		case TIOCGPGRP:
-			verify_area((void *) arg,4);
+			verify_area(VERIFY_WRITE,(void *) arg,4);
 			put_fs_long(tty->pgrp,(unsigned long *) arg);
 			return 0;
 		case TIOCSPGRP:
 			tty->pgrp=get_fs_long((unsigned long *) arg);
 			return 0;
 		case TIOCOUTQ:
-			verify_area((void *) arg,4);
+			verify_area(VERIFY_WRITE,(void *) arg,4);
 			put_fs_long(CHARS(tty->write_q),(unsigned long *) arg);
 			return 0;
 		case TIOCINQ:
-			verify_area((void *) arg,4);
+			verify_area(VERIFY_WRITE,(void *) arg,4);
 			put_fs_long(CHARS(tty->secondary),
 				(unsigned long *) arg);
 			return 0;

@@ -1,11 +1,9 @@
-#ifndef _SOCKET_H
-#define _SOCKET_H
+#ifndef _DEV_H
+#define _DEV_H
 
 #include <8390.h>
 #include <asm/system.h>
 
-#define NULL	0
-#define null	0
 
 /* for future expansion when we will have different priorities. */
 #define DEV_NUMBUFFS	3

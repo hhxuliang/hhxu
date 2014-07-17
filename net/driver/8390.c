@@ -1,21 +1,39 @@
 
 static char *version =
     "8390.c:v0.99-15e 2/16/94 Donald Becker (becker@super.org)\n";
+#include <linux/socket.h>
+#include <linux/if_arp.h>
+#include <linux/if.h>
+
 #include <linux/config.h>
-#include <asm/io.h>
-#include <asm/system.h>
-#include <signal.h>
-#include <errno.h>
+#include <linux/kernel.h>
 #include <linux/sched.h>
+#include <linux/fs.h>
+#include <linux/types.h>
+#include <linux/ptrace.h>
 #include <string.h>
-#include <skbuff.h>
-#include <8390.h>
-#include <dev.h>
-#include <stddef.h>
+#include <asm/system.h>
+#include <asm/segment.h>
+#include <asm/bitops.h>
+#include <asm/io.h>
+#include <errno.h>
+#include <linux/fcntl.h>
+#include <linux/in.h>
+#include <linux/interrupt.h>
+#include "dev.h"
+#include "eth.h"
+#include "ip.h"
+#include "protocol.h"
+#include "tcp.h"
+#include "skbuff.h"
+#include "sock.h"
+#include "arp.h"
+
+#include "8390.h"
+
+
 
 extern struct device eth0_dev;
-
-
 
 /* These are the operational function interfaces to board-specific
    routines.
@@ -72,11 +90,7 @@ struct sigaction ei_sigaction = { ei_interrupt, 0, 0, NULL, };
    */
 
 
-void ei_open_xl()
-{
-	ei_open_my();
 
-}
 
 int ei_open(struct device *dev)
 {
@@ -92,11 +106,6 @@ int ei_open(struct device *dev)
     dev->start = 1;
     ei_local->irqlock = 0;
     return 0;
-}
-int ei_open_my()
-{
-	
-	return ei_open(&eth0_dev);
 }
 
 static int ei_start_xmit(struct sk_buff *skb, struct device *dev)
@@ -137,13 +146,13 @@ static int ei_start_xmit(struct sk_buff *skb, struct device *dev)
        tx-done interrupt. Caution: dev_tint() handles the cli()/sti()
        itself. */
     if (skb == NULL) {
-//		dev_tint(dev);
+		dev_tint(dev);
 		return 0;
     }
     /* Fill in the ethernet header. */
     if (!skb->arp  &&  dev->rebuild_header(skb->data, dev)) {
 		skb->dev = dev;
-	//	arp_queue (skb);
+		arp_queue (skb);
 		return 0;
     }
     skb->arp=1;
@@ -392,10 +401,8 @@ static void ei_receive(struct device *dev)
 		current_offset = this_frame << 8;
 		
 		
-		printk("I receive a packet1   :: %p\n" ,rx_pkt_count );
 		ei_block_input(dev, sizeof(rx_frame), (char *)&rx_frame,
 					   current_offset);
-		printk("I receive a packet   :: %p\n" ,pkt_len );
 		
 		pkt_len = rx_frame.count - sizeof(rx_frame);
 		
@@ -584,7 +591,24 @@ int ethdev_init(struct device *dev)
     for (i = 0; i < DEV_NUMBUFFS; i++)
 		dev->buffs[i] = NULL;
     
-
+    dev->hard_header	= eth_header;
+    dev->add_arp		= eth_add_arp;
+    dev->queue_xmit		= dev_queue_xmit;
+    dev->rebuild_header	= eth_rebuild_header;
+    dev->type_trans		= eth_type_trans;
+    dev->type		= ARPHRD_ETHER;
+    dev->hard_header_len = ETH_HLEN;
+    dev->mtu		= 1500; /* eth_mtu */
+    dev->addr_len	= ETH_ALEN;
+    for (i = 0; i < ETH_ALEN; i++) {
+		dev->broadcast[i]=0xff;
+    }
+    dev->flags		= IFF_BROADCAST;
+    dev->family		= AF_INET;
+    dev->pa_addr	= 0;
+    dev->pa_brdaddr	= 0;
+    dev->pa_mask	= 0;
+    dev->pa_alen	= sizeof(unsigned long);
     
     return 0;
 }

@@ -101,7 +101,7 @@ __asm__("cld\n\t" \
 	"pop %%es" \
 	: /* no outputs */ \
 	:"c" (n/4),"D" ((long) to),"S" ((long) from) \
-	:"cx","di","si")
+	)
 
 	switch (n % 4) {
 		case 0:
@@ -161,7 +161,7 @@ __asm__("cld\n\t" \
 	x \
 	: /* no outputs */ \
 	:"c" (n/4),"D" ((long) to),"S" ((long) from) \
-	:"cx","di","si","memory")
+	:"memory")
 
 	switch (n % 4) {
 		case 0:

@@ -26,6 +26,7 @@
 #ifndef _SKBUFF_H
 #define _SKBUFF_H
 
+#include <linux/wait.h>
 
 #define HAVE_ALLOC_SKB		/* For the drivers to know */
 
@@ -44,11 +45,11 @@ struct sk_buff {
   struct sk_buff		*volatile prev;
   struct sk_buff		*volatile link3;
   struct sk_buff		*volatile* list;
-  //struct sock			*sk;
+  struct sock			*sk;
   volatile unsigned long	when;	/* used to compute rtt's	*/
   struct device			*dev;
   void				*mem_addr;
-  /*union {
+  union {
 	struct tcphdr	*th;
 	struct ethhdr	*eth;
 	struct iphdr	*iph;
@@ -60,7 +61,7 @@ struct sk_buff {
 	ipx_packet	*ipx;
 #endif	
   } h;
-  struct iphdr		*ip_hdr;*/		/* For IPPROTO_RAW */
+  struct iphdr		*ip_hdr;		/* For IPPROTO_RAW */
   unsigned long			mem_len;
   unsigned long 		len;
   unsigned long			fraglen;
@@ -103,7 +104,7 @@ extern void 			skb_check(struct sk_buff *skb,int, char *);
 #define IS_SKB(skb)	skb_check((skb),__LINE__,__FILE__)
 
 extern struct sk_buff *		skb_recv_datagram(struct sock *sk,unsigned flags,int noblock, int *err);
-//extern int			datagram_select(struct sock *sk, int sel_type, select_table *wait);
+extern int			datagram_select(struct sock *sk, int sel_type, select_table *wait);
 extern void			skb_copy_datagram(struct sk_buff *from, int offset, char *to,int size);
 extern void			skb_free_datagram(struct sk_buff *skb);
 

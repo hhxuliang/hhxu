@@ -29,7 +29,7 @@ static inline void save_old(char * from,char * to)
 {
 	int i;
 
-	verify_area(to, sizeof(struct sigaction));
+	verify_area(VERIFY_WRITE,to, sizeof(struct sigaction));
 	for (i=0 ; i< sizeof(struct sigaction) ; i++) {
 		put_fs_byte(*from,to);
 		from++;
@@ -104,7 +104,7 @@ void do_signal(long signr,long eax, long ebx, long ecx, long edx,
 	*(&eip) = sa_handler;
 	longs = (sa->sa_flags & SA_NOMASK)?7:8;
 	*(&esp) -= longs;
-	verify_area(esp,longs*4);
+	verify_area(VERIFY_WRITE,esp,longs*4);
 	tmp_esp=esp;
 	put_fs_long((long) sa->sa_restorer,tmp_esp++);
 	put_fs_long(signr,tmp_esp++);

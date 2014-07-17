@@ -1,10 +1,14 @@
 /*
  * 'kernel.h' contains some often-used function prototypes etc
  */
-void verify_area(void * addr,int count);
+#define VERIFY_READ 0
+#define VERIFY_WRITE 1
+
+int verify_area(int type,void * addr,int count);
 volatile void panic(const char * str);
 int printf(const char * fmt, ...);
 int printk(const char * fmt, ...);
+int sprintf(char * buf, const char * fmt, ...);
 int tty_write(unsigned ch,char * buf,int count);
 void * malloc(unsigned int size);
 void free_s(void * obj, int size);

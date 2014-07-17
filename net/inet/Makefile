@@ -8,7 +8,7 @@
 # Note 2! The CFLAGS definition is now in the main makefile...
 
 CC	=gcc -mcpu=i386
-CFLAGS	=-Wall  -g -fstrength-reduce -fomit-frame-pointer \
+CFLAGS	=-Wall -g -O -fstrength-reduce -fomit-frame-pointer \
 	-finline-functions -nostdinc -I../../include -I../include -I. -I../driver
 AS	=as
 AR	=ar
@@ -25,7 +25,8 @@ CPP	=gcc -E -nostdinc -I../include
 	-S -o $*.s $<
 
 
-OBJS	= test.o sock.o dev.o skbuff.o eth.o loopback.o 
+OBJS	= sock.o dev.o skbuff.o eth.o loopback.o raw.o ip.o arp.o icmp.o \
+			utils.o route.o packet.o protocol.o datagram.o proc.o timer.o udp.o tcp.o 
 
 inet.o:		$(OBJS)
 		$(LD) -r -o inet.o $(OBJS)

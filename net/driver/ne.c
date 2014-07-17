@@ -79,42 +79,6 @@ int ne_probe(struct device *dev)
     return ENODEV;
 }
 
-
-int irqaction(unsigned int irq, struct sigaction * new_sa)
-{
-	struct sigaction * sa;
-	unsigned long flags;
-
-/*	if (irq > 15)
-		return -EINVAL;
-	sa = irq + irq_sigaction;
-	if (sa->sa_mask)
-		return -EBUSY;
-	if (!new_sa->sa_handler)
-		return -EINVAL;
-		*/
-	save_flags(flags);
-	cli();
-	*sa = *new_sa;
-	sa->sa_mask = 1;
-	/*if (sa->sa_flags & SA_INTERRUPT)
-		set_intr_gate(0x20+irq,fast_interrupt[irq]);
-	else
-		set_intr_gate(0x20+irq,interrupt[irq]);*/
-	set_intr_gate(0x20+irq,ei_interrupt);
-	if (irq < 8) {
-		cache_21 &= ~(1<<irq);
-		outb(cache_21,0x21);
-	} else {
-		cache_21 &= ~(1<<2);
-		cache_A1 &= ~(1<<(irq-8));
-		outb(cache_21,0x21);
-		outb(cache_A1,0xA1);
-	}
-	restore_flags(flags);
-	return 0;
-}
-
 static int neprobe1(int ioaddr, struct device *dev, int verbose)
 {
     int i;
@@ -274,7 +238,7 @@ static int neprobe1(int ioaddr, struct device *dev, int verbose)
     ei_status.block_output = &ne_block_output;
     
 	NS8390_init(dev, 0);
-	//ei_open(&eth0_dev);
+	ei_open(&eth0_dev);
 	return dev->base_addr;
 }
 

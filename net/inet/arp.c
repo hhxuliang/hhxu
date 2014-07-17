@@ -55,7 +55,7 @@
  *		2 of the License, or (at your option) any later version.
  */
 #include <linux/types.h>
-#include <linux/string.h>
+#include <string.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
 #include <linux/config.h>
@@ -123,7 +123,7 @@ static int arp_proxies=0;	/* So we can avoid the proxy arp
 				   overhead with the usual case of
 				   no proxy arps */
 
-//struct sk_buff * volatile arp_q = NULL;
+struct sk_buff * volatile arp_q = NULL;
 
 static struct arp_table *arp_lookup(unsigned long addr);
 static struct arp_table *arp_lookup_proxy(unsigned long addr);
@@ -205,9 +205,9 @@ arp_send_q(void)
   struct sk_buff *skb;
   struct sk_buff *volatile work_q;
   cli();
-  //work_q = arp_q;
+  work_q = arp_q;
   skb_new_list_head(&work_q);
-  //arp_q = NULL;
+  arp_q = NULL;
   sti();
   while((skb=skb_dequeue(&work_q))!=NULL)
   {
@@ -229,7 +229,7 @@ arp_send_q(void)
 		 * In any case, trying further is useless.  So, we kill
 		 * this packet from the queue.  (grinnik) -FvK
 		 */
-		//skb->sk = NULL;
+		skb->sk = NULL;
 		if(skb->free)
 			kfree_skb(skb, FREE_WRITE);
 			/* If free was 0, magic is now 0, next is 0 and 
@@ -246,7 +246,7 @@ arp_send_q(void)
 	} else {
 		/* Alas.  Re-queue it... */
 		skb->magic = ARP_QUEUE_MAGIC;      
-		//skb_queue_head(&arp_q,skb);
+		skb_queue_head(&arp_q,skb);
 	}
   }
 }
@@ -261,15 +261,15 @@ static void arp_queue_kick(void)
 	arp_timer.expires = 500;	/* 5 seconds */
 	arp_timer.data = 0;
 	arp_timer.function = arp_queue_ticker;
-	del_timer(&arp_timer);
+	//del_timer(&arp_timer);
 	//add_timer(&arp_timer);
 }
 
 static void arp_queue_ticker(unsigned long data/*UNUSED*/)
 {
 	arp_send_q();
-	//if (skb_peek(&arp_q))
-	//	arp_queue_kick();
+	if (skb_peek(&arp_q))
+		arp_queue_kick();
 }
 
 
@@ -343,7 +343,7 @@ arp_response(struct arphdr *arp1, struct device *dev,  int addrtype)
 
   skb->free = 1;
   skb->arp = 1;
-  //skb->sk = NULL;
+  skb->sk = NULL;
   skb->next = NULL;
 
   DPRINTF((DBG_ARP, ">>"));
@@ -517,7 +517,7 @@ arp_rcv(struct sk_buff *skb, struct device *dev, struct packet_type *pt)
   int addr_hint;
 
   DPRINTF((DBG_ARP, "<<\n"));
-  //arp = skb->h.arp;
+  arp = skb->h.arp;
   arp_print(arp);
 
   /* If this test doesn't pass, its not IP. Might be DECNET or friends */
@@ -631,7 +631,7 @@ arp_send(unsigned long paddr, struct device *dev, unsigned long saddr)
   }
   
   /* Fill in the request. */
-  //skb->sk = NULL;
+  skb->sk = NULL;
   skb->mem_addr = skb;
   skb->len = sizeof(struct arphdr) +
 	     dev->hard_header_len + (2 * dev->addr_len) + 8;
@@ -777,9 +777,9 @@ arp_queue(struct sk_buff *skb)
 	printk("ARP: arp_queue skb already on queue magic=%X.\n", skb->magic);
 	return;
   }
-  //if(arp_q==NULL)
+  if(arp_q==NULL)
   	arp_queue_kick();
-  //skb_queue_tail(&arp_q,skb);
+  skb_queue_tail(&arp_q,skb);
   skb->magic = ARP_QUEUE_MAGIC;
   sti();
 }
@@ -954,18 +954,18 @@ arp_ioctl(unsigned int cmd, void *arg)
 		return(dbg_ioctl(arg, DBG_ARP));
 	case SIOCDARP:
 		if (!suser()) return(-EPERM);
-		//err=verify_area(VERIFY_READ,arg,sizeof(struct arpreq));
+		err=verify_area(VERIFY_READ,arg,sizeof(struct arpreq));
 		if(err)
 			return err;
 		return(arp_req_del((struct arpreq *)arg));
 	case SIOCGARP:
-		//err=verify_area(VERIFY_WRITE,arg,sizeof(struct arpreq));
+		err=verify_area(VERIFY_WRITE,arg,sizeof(struct arpreq));
 		if(err)
 			return err;
 		return(arp_req_get((struct arpreq *)arg));
 	case SIOCSARP:
 		if (!suser()) return(-EPERM);
-		//err=verify_area(VERIFY_READ,arg,sizeof(struct arpreq));
+		err=verify_area(VERIFY_READ,arg,sizeof(struct arpreq));
 		if(err)
 			return err;
 		return(arp_req_set((struct arpreq *)arg));

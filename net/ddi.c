@@ -16,7 +16,7 @@
 #include <linux/sched.h>
 #include <string.h>
 #include <linux/mm.h>
-#include <socket.h>
+#include <linux/socket.h>
 #include <ddi.h>
 
 

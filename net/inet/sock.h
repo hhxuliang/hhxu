@@ -30,9 +30,9 @@
 #ifndef _SOCK_H
 #define _SOCK_H
 
-//#include <linux/timer.h>
-//#include <linux/ip.h>		/* struct options */
-//#include <linux/tcp.h>		/* struct tcphdr */
+#include <linux/timer.h>
+#include <linux/ip.h>		/* struct options */
+#include <linux/tcp.h>		/* struct tcphdr */
 
 #include "skbuff.h"		/* struct sk_buff */
 #include "protocol.h"		/* struct inet_protocol */
@@ -153,7 +153,7 @@ struct sock {
 /* IP 'private area' or will be eventually */
   int				ip_ttl;		/* TTL setting */
   int				ip_tos;		/* TOS */
-  //struct tcphdr			dummy_th;
+  struct tcphdr			dummy_th;
 
   /* This part is used for the timeout functions (timer.c). */
   int				timeout;	/* What are we waiting for? */
@@ -214,8 +214,8 @@ struct proto {
 			       struct options *opt, unsigned long daddr,
 			       unsigned short len, unsigned long saddr,
 			       int redo, struct inet_protocol *protocol);
-  //int			(*select)(struct sock *sk, int which,
-//				  select_table *wait);
+  int			(*select)(struct sock *sk, int which,
+				  select_table *wait);
   int			(*ioctl)(struct sock *sk, int cmd,
 				 unsigned long arg);
   int			(*init)(struct sock *sk);

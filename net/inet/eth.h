@@ -22,7 +22,7 @@
 //#include <linux/if_ether.h>
 
 
-/*extern char		*eth_print(unsigned char *ptr);
+extern char		*eth_print(unsigned char *ptr);
 extern void		eth_dump(struct ethhdr *eth);
 extern int		eth_header(unsigned char *buff, struct device *dev,
 				   unsigned short type, unsigned long daddr,
@@ -31,6 +31,6 @@ extern int		eth_rebuild_header(void *buff, struct device *dev);
 extern void		eth_add_arp(unsigned long addr, struct sk_buff *skb,
 				    struct device *dev);
 extern unsigned short	eth_type_trans(struct sk_buff *skb, struct device *dev);
-*/
+
 #endif	/* _ETH_H */
 

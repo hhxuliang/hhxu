@@ -34,7 +34,7 @@ void release(struct task_struct * p)
 	panic("trying to release non-existent task");
 }
 
-static inline int send_sig(long sig,struct task_struct * p,int priv)
+inline int send_sig(long sig,struct task_struct * p,int priv)
 {
 	if (!p || sig<1 || sig>32)
 		return -EINVAL;
@@ -145,7 +145,7 @@ int sys_waitpid(pid_t pid,unsigned long * stat_addr, int options)
 	int flag, code;
 	struct task_struct ** p;
 
-	verify_area(stat_addr,4);
+	verify_area(VERIFY_WRITE,stat_addr,4);
 repeat:
 	flag=0;
 	for(p = &LAST_TASK ; p > &FIRST_TASK ; --p) {

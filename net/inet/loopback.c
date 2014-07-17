@@ -21,7 +21,7 @@
 #include <linux/sched.h>
 #include <linux/fs.h>
 #include <string.h>
-#include <socket.h>
+#include <linux/socket.h>
 #include <errno.h>
 #include <asm/system.h>
 #include <asm/segment.h>
@@ -30,7 +30,9 @@
 #include "inet.h"
 #include "dev.h"
 #include "eth.h"
+#include "ip.h"
 #include "protocol.h"
+#include "tcp.h"
 #include "skbuff.h"
 #include "sock.h"
 #include "arp.h"
@@ -54,11 +56,11 @@ loopback_xmit(struct sk_buff *skb, struct device *dev)
   dev->tbusy = 1;
   sti();
 
-  //one = dev_rint(skb->data, skb->len, 0, dev);
+  done = dev_rint(skb->data, skb->len, 0, dev);
   if (skb->free) kfree_skb(skb, FREE_WRITE);
 
   while (done != 1) {
-//	done = dev_rint(NULL, 0, 0, dev);
+	done = dev_rint(NULL, 0, 0, dev);
   }
   stats->tx_packets++;
 
