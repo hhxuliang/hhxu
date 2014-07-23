@@ -93,7 +93,7 @@ struct sock {
   struct sk_buff		*volatile send_head;
   struct sk_buff		*volatile back_log;
   struct sk_buff		*partial;
-  //struct timer_list		partial_timer;
+  struct timer_list		partial_timer;
   long				retransmits;
   struct sk_buff		*volatile wback,
 				*volatile wfront,
@@ -157,7 +157,7 @@ struct sock {
 
   /* This part is used for the timeout functions (timer.c). */
   int				timeout;	/* What are we waiting for? */
-  //struct timer_list		timer;
+  struct timer_list		timer;
 
   /* identd */
   struct socket			*socket;

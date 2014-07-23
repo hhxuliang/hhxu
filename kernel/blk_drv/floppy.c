@@ -34,6 +34,7 @@
 #include <linux/fs.h>
 #include <linux/kernel.h>
 #include <linux/fdreg.h>
+#include <linux/timer.h>
 #include <asm/system.h>
 #include <asm/io.h>
 #include <asm/segment.h>
@@ -306,7 +307,7 @@ static void seek_interrupt(void)
  * for the transfer (ie floppy motor is on and the correct floppy is
  * selected).
  */
-static void transfer(void)
+static void transfer(unsigned long data)
 {
 	if (cur_spec1 != floppy->spec1) {
 		cur_spec1 = floppy->spec1;
@@ -401,6 +402,10 @@ static void reset_floppy(void)
 	sti();
 }
 
+static struct timer_list floppy_timer = {0,};
+static struct timer_list floppy_timer_interrupt = {0,};
+
+
 static void floppy_on_interrupt(void)
 {
 /* We cannot do a floppy-select, as that might sleep. We just force it */
@@ -409,9 +414,18 @@ static void floppy_on_interrupt(void)
 		current_DOR &= 0xFC;
 		current_DOR |= current_drive;
 		outb(current_DOR,FD_DOR);
-		add_timer(2,&transfer);
+		if(floppy_timer.function == NULL)
+		{
+			floppy_timer.data = NULL;
+			floppy_timer.expires = 2;
+			floppy_timer.function = &transfer;
+			floppy_timer.next = NULL;
+			add_timer(&floppy_timer);
+		}else
+			panic("floppy_on_interrupt: Error floppy_timer.");
+		
 	} else
-		transfer();
+		transfer(0);
 }
 
 void do_fd_request(void)
@@ -451,7 +465,15 @@ void do_fd_request(void)
 		command = FD_WRITE;
 	else
 		panic("do_fd_request: unknown command");
-	add_timer(ticks_to_floppy_on(current_drive),&floppy_on_interrupt);
+	if(floppy_timer_interrupt.function == NULL)
+	{
+		floppy_timer_interrupt.data = NULL;
+		floppy_timer_interrupt.expires = ticks_to_floppy_on(current_drive);
+		floppy_timer_interrupt.function = &floppy_on_interrupt;
+		floppy_timer_interrupt.next = NULL;
+		add_timer(&floppy_timer_interrupt);
+	}else
+		panic("do_fd_request: Error floppy_timer_interrupt");
 }
 
 void floppy_init(void)

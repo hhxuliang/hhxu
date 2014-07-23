@@ -30,6 +30,9 @@
 #include <linux/fcntl.h>
 #include <linux/net.h>
 #include <linux/ddi.h>
+#include <linux/fs.h>
+#include <linux/dirent.h>
+
 
 #include <asm/system.h>
 #include <asm/segment.h>
@@ -55,6 +58,20 @@ static void sock_close(struct inode *inode, struct file *file);
 static int sock_select(struct inode *inode, struct file *file, int which, select_table *seltable);
 static int sock_ioctl(struct inode *inode, struct file *file,
 		      unsigned int cmd, unsigned long arg);
+static void wake_up_interruptible(struct wait_queue ** p){}
+
+struct file_operations {
+	int (*lseek) (struct inode *, struct file *, off_t, int);
+	int (*read) (struct inode *, struct file *, char *, int);
+	int (*write) (struct inode *, struct file *, char *, int);
+	int (*readdir) (struct inode *, struct file *, struct dirent *, int);
+	int (*select) (struct inode *, struct file *, int, select_table *);
+	int (*ioctl) (struct inode *, struct file *, unsigned int, unsigned long);
+	int (*mmap) (struct inode *, struct file *, unsigned long, size_t, int, unsigned long);
+	int (*open) (struct inode *, struct file *);
+	void (*release) (struct inode *, struct file *);
+	int (*fsync) (struct inode *, struct file *);
+};
 
 
 static struct file_operations socket_file_ops = {
@@ -101,7 +118,7 @@ get_fd(struct inode *inode)
   struct file *file;
 
   /* Find a file descriptor suitable for return to the user. */
-  file = get_empty_filp();
+//  file = get_empty_filp();
   if (!file) return(-1);
   for (fd = 0; fd < NR_OPEN; ++fd)
 	if (!current->filp[fd]) break;
@@ -109,14 +126,14 @@ get_fd(struct inode *inode)
 	file->f_count = 0;
 	return(-1);
   }
-  FD_CLR(fd, &current->close_on_exec);
+  //FD_CLR(fd, &current->close_on_exec);
   current->filp[fd] = file;
-  file->f_op = &socket_file_ops;
+  //file->f_op = &socket_file_ops;
   file->f_mode = 3;
   file->f_flags = 0;
   file->f_count = 1;
   file->f_inode = inode;
-  if (inode) inode->i_count++;
+  //if (inode) inode->i_count++;
   file->f_pos = 0;
   return(fd);
 }
@@ -139,11 +156,11 @@ socki_lookup(struct inode *inode)
 {
   struct socket *sock;
 
-  if ((sock = inode->i_socket) != NULL) {
+  /*if ((sock = inode->i_socket) != NULL) {
 	if (sock->state != SS_FREE && SOCK_INODE(sock) == inode)
 		return sock;
 	printk("socket.c: uhhuh. stale inode->i_socket pointer\n");
-  }
+  }*/
   for (sock = sockets; sock <= last_socket; ++sock)
 	if (sock->state != SS_FREE && SOCK_INODE(sock) == inode) {
 		printk("socket.c: uhhuh. Found socket despite no inode->i_socket pointer\n");
@@ -193,12 +210,12 @@ sock_alloc(int wait)
 				sock->state = SS_FREE;
 				return(NULL);
 			}
-			SOCK_INODE(sock)->i_mode = S_IFSOCK;
-			SOCK_INODE(sock)->i_uid = current->euid;
-			SOCK_INODE(sock)->i_gid = current->egid;
-			SOCK_INODE(sock)->i_socket = sock;
+			//SOCK_INODE(sock)->i_mode = S_IFSOCK;
+			//SOCK_INODE(sock)->i_uid = current->euid;
+			//SOCK_INODE(sock)->i_gid = current->egid;
+			//SOCK_INODE(sock)->i_socket = sock;
 
-			sock->wait = &SOCK_INODE(sock)->i_wait;
+			//sock->wait = &SOCK_INODE(sock)->i_wait;
 			DPRINTF((net_debug,
 				"NET: sock_alloc: sk 0x%x, ino 0x%x\n",
 				       			sock, SOCK_INODE(sock)));
@@ -847,7 +864,7 @@ sock_fcntl(struct file *filp, unsigned int cmd, unsigned long arg)
  * we have this level of indirection. Not a lot of overhead, since more of
  * the work is done via read/write/select directly.
  */
-asmlinkage int
+__attribute__((regparm(0))) int
 sys_socketcall(int call, unsigned long *args)
 {
   int er;
@@ -1010,20 +1027,7 @@ net_fioctl(struct inode *inode, struct file *file,
 {
   extern int arp_ioctl(unsigned int, void *);
 
-  /* Dispatch on the minor device. */
-  switch(MINOR(inode->i_rdev)) {
-	case 0:		/* NET (SOCKET) */
-		DPRINTF((net_debug, "NET: SOCKET level I/O control request.\n"));
-		return(net_ioctl(cmd, arg));
-#ifdef CONFIG_INET
-	case 1:		/* ARP */
-		DPRINTF((net_debug, "NET: ARP level I/O control request.\n"));
-		return(arp_ioctl(cmd, (void *) arg));
-#endif
-	default:
-		return(-ENODEV);
-  }
-  /*NOTREACHED*/
+
   return(-EINVAL);
 }
 
@@ -1073,11 +1077,11 @@ sock_init(void)
   int i;
 
   /* Set up our SOCKET VFS major device. */
-  if (register_chrdev(SOCKET_MAJOR, "socket", &net_fops) < 0) {
+/*  if (register_chrdev(SOCKET_MAJOR, "socket", &net_fops) < 0) {
 	printk("NET: cannot register major device %d!\n", SOCKET_MAJOR);
 	return;
   }
-
+*/
   /* Release all sockets. */
   for (sock = sockets; sock <= last_socket; ++sock) sock->state = SS_FREE;
 

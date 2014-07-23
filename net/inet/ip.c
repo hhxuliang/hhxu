@@ -562,7 +562,7 @@ static struct ipq *ip_find(struct iphdr *iph)
  		if (iph->id== qp->iph->id && iph->saddr == qp->iph->saddr &&
 			iph->daddr == qp->iph->daddr && iph->protocol == qp->iph->protocol) 
 		{
-			//del_timer(&qp->timer);	/* So it doesnt vanish on us. The timer will be reset anyway */
+			del_timer(&qp->timer);	/* So it doesnt vanish on us. The timer will be reset anyway */
  			sti();
  			return(qp);
  		}
@@ -585,7 +585,7 @@ static void ip_free(struct ipq *qp)
 
 	/* Stop the timer for this entry. */
 /*	printk("ip_free\n");*/
-	//del_timer(&qp->timer);
+	del_timer(&qp->timer);
 
 	/* Remove this entry from the "incomplete datagrams" queue. */
 	cli();
@@ -705,10 +705,10 @@ static struct ipq *ip_create(struct sk_buff *skb, struct iphdr *iph, struct devi
 /*  	printk("Protocol = %d\n",qp->iph->protocol);*/
 	
   	/* Start a timer for this entry. */
-  	//qp->timer.expires = IP_FRAG_TIME;		/* about 30 seconds	*/
-  	//qp->timer.data = (unsigned long) qp;		/* pointer to queue	*/
-  	//qp->timer.function = ip_expire;			/* expire function	*/
-  	//add_timer(&qp->timer);
+  	qp->timer.expires = IP_FRAG_TIME;		/* about 30 seconds	*/
+  	qp->timer.data = (unsigned long) qp;		/* pointer to queue	*/
+  	qp->timer.function = ip_expire;			/* expire function	*/
+  	add_timer(&qp->timer);
 
   	/* Add this entry to the queue. */
   	qp->prev = NULL;
@@ -846,11 +846,11 @@ static struct sk_buff *ip_defrag(struct iphdr *iph, struct sk_buff *skb, struct 
     	 */
    	if (qp != NULL) 
    	{
- 		//del_timer(&qp->timer);
- 		//qp->timer.expires = IP_FRAG_TIME;	/* about 30 seconds	*/
- 		//qp->timer.data = (unsigned long) qp;	/* pointer to queue	*/
- 		//qp->timer.function = ip_expire;		/* expire function	*/
- 		//add_timer(&qp->timer);
+ 		del_timer(&qp->timer);
+ 		qp->timer.expires = IP_FRAG_TIME;	/* about 30 seconds	*/
+ 		qp->timer.data = (unsigned long) qp;	/* pointer to queue	*/
+ 		qp->timer.function = ip_expire;		/* expire function	*/
+ 		add_timer(&qp->timer);
    	} 
    	else 
    	{

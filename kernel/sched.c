@@ -17,6 +17,7 @@
 #include <asm/system.h>
 #include <asm/io.h>
 #include <asm/segment.h>
+#include <linux/timer.h>
 
 #include <signal.h>
 
@@ -263,43 +264,54 @@ void do_floppy_timer(void)
 
 #define TIME_REQUESTS 64
 
-static struct timer_list {
-	long jiffies;
-	void (*fn)();
-	struct timer_list * next;
-} timer_list[TIME_REQUESTS], * next_timer = NULL;
+static struct timer_list * next_timer = NULL;
 
-void add_timer(long jiffies, void (*fn)(void))
+void add_timer(struct timer_list * timer)
 {
-	struct timer_list * p;
+	unsigned long flags;
+	struct timer_list ** p;
 
-	if (!fn)
+	if (!timer)
 		return;
+	timer->next = NULL;
+	p = &next_timer;
+	save_flags(flags);
 	cli();
-	if (jiffies <= 0)
-		(fn)();
-	else {
-		for (p = timer_list ; p < timer_list + TIME_REQUESTS ; p++)
-			if (!p->fn)
-				break;
-		if (p >= timer_list + TIME_REQUESTS)
-			panic("No more time requests free");
-		p->fn = fn;
-		p->jiffies = jiffies;
-		p->next = next_timer;
-		next_timer = p;
-		while (p->next && p->next->jiffies < p->jiffies) {
-			p->jiffies -= p->next->jiffies;
-			fn = p->fn;
-			p->fn = p->next->fn;
-			p->next->fn = fn;
-			jiffies = p->jiffies;
-			p->jiffies = p->next->jiffies;
-			p->next->jiffies = jiffies;
-			p = p->next;
+	while (*p) {
+		if ((*p)->expires > timer->expires) {
+			(*p)->expires -= timer->expires;
+			timer->next = *p;
+			break;
 		}
+		timer->expires -= (*p)->expires;
+		p = &(*p)->next;
 	}
-	sti();
+	*p = timer;
+	restore_flags(flags);
+}
+
+int del_timer(struct timer_list * timer)
+{
+	unsigned long flags;
+	unsigned long expires = 0;
+	struct timer_list **p;
+
+	p = &next_timer;
+	save_flags(flags);
+	cli();
+	while (*p) {
+		if (*p == timer) {
+			if ((*p = timer->next) != NULL)
+				(*p)->expires += timer->expires;
+			timer->expires += expires;
+			restore_flags(flags);
+			return 1;
+		}
+		expires += (*p)->expires;
+		p = &(*p)->next;
+	}
+	restore_flags(flags);
+	return 0;
 }
 
 void do_timer(long cpl)
@@ -317,14 +329,17 @@ void do_timer(long cpl)
 		current->stime++;
 
 	if (next_timer) {
-		next_timer->jiffies--;
-		while (next_timer && next_timer->jiffies <= 0) {
-			void (*fn)(void);
+		next_timer->expires--;
+		while (next_timer && next_timer->expires <= 0) {
+			void (*fn)(unsigned long);
+			unsigned long data;
 			
-			fn = next_timer->fn;
-			next_timer->fn = NULL;
+			fn = next_timer->function;
+			data = next_timer->data;
+			next_timer->function = NULL;
+			next_timer->data = NULL;
 			next_timer = next_timer->next;
-			(fn)();
+			(fn)(data);
 		}
 	}
 	if (current_DOR & 0xf0)

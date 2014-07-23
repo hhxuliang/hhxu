@@ -51,7 +51,7 @@ struct ipq	 {
   int		len;		/* total length of original datagram	*/
   short			ihlen;		/* length of the IP header		*/
   short 	maclen;		/* length of the MAC header		*/
- // struct timer_list timer;	/* when will this queue expire?		*/
+  struct timer_list timer;	/* when will this queue expire?		*/
   struct ipfrag		*fragments;	/* linked list of received fragments	*/
   struct ipq	*next;		/* linked list pointers			*/
   struct ipq	*prev;

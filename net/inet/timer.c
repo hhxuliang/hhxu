@@ -58,7 +58,7 @@ delete_timer (struct sock *t)
   cli();
 
   t->timeout = 0;
-  //del_timer (&t->timer);
+  del_timer (&t->timer);
 
   restore_flags (flags);
 }
@@ -76,8 +76,8 @@ reset_timer (struct sock *t, int timeout, unsigned long len)
   if ((int) len < 0)	/* prevent close to infinite timers. THEY _DO_ */
 	len = 3;	/* happen (negative values ?) - don't ask me why ! -FB */
 #endif
-  //t->timer.expires = len;
-  //add_timer (&t->timer);
+  t->timer.expires = len;
+  add_timer (&t->timer);
 }
 
 
@@ -94,8 +94,8 @@ net_timer (unsigned long data)
   /* timeout is overwritten by 'delete_timer' and 'reset_timer' */
 
   if (sk->inuse || in_inet_bh()) {
-    //sk->timer.expires = 10;
-    //add_timer(&sk->timer);
+    sk->timer.expires = 10;
+    add_timer(&sk->timer);
     return;
   }
   sk->inuse = 1;

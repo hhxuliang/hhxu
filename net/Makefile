@@ -15,7 +15,7 @@ CPP	=gcc -E -nostdinc -I../include
 	$(CC) $(CFLAGS) \
 	-S -o $*.s $<
 
-OBJS	= ddi.o space.o #socket.o 
+OBJS	= ddi.o space.o socket.o 
 
 SUBDIRS     := inet driver
 

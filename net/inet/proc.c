@@ -83,17 +83,17 @@ get__netinfo(struct proto *pro, char *buffer, int format)
 		/* Since we are Little Endian we need to swap the bytes :-( */
 		destp = ntohs(destp);
 		srcp  = ntohs(srcp);
-		//timer_active = del_timer(&sp->timer);
-		/*if (!timer_active)
+		timer_active = del_timer(&sp->timer);
+		if (!timer_active)
 			sp->timer.expires = 0;
-		pos+=sprintf(pos, "%2d: %08lX:%04X %08lX:%04X %02X %08lX:%08lX %02X:%08lX %08X %d\n",
+		/*pos+=sprintf(pos, "%2d: %08lX:%04X %08lX:%04X %02X %08lX:%08lX %02X:%08lX %08X %d\n",
 			i, src, srcp, dest, destp, sp->state, 
 			format==0?sp->write_seq-sp->rcv_ack_seq:sp->rmem_alloc, 
 			format==0?sp->acked_seq-sp->copied_seq:sp->wmem_alloc,
 			timer_active, sp->timer.expires, (unsigned) sp->retransmits,
-			SOCK_INODE(sp->socket)->i_uid);
+			SOCK_INODE(sp->socket)->i_uid);*/
 		if (timer_active)
-			add_timer(&sp->timer);*/
+			add_timer(&sp->timer);
 		/* Is place in buffer too rare? then abort. */
 		if (pos > buffer+PAGE_SIZE-80) {
 			printk("oops, too many %s sockets for netinfo.\n",

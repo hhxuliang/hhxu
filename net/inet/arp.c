@@ -261,8 +261,8 @@ static void arp_queue_kick(void)
 	arp_timer.expires = 500;	/* 5 seconds */
 	arp_timer.data = 0;
 	arp_timer.function = arp_queue_ticker;
-	//del_timer(&arp_timer);
-	//add_timer(&arp_timer);
+	del_timer(&arp_timer);
+	add_timer(&arp_timer);
 }
 
 static void arp_queue_ticker(unsigned long data/*UNUSED*/)

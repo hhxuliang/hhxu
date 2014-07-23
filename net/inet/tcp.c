@@ -582,6 +582,10 @@ struct sk_buff * tcp_dequeue_partial(struct sock * sk)
 	save_flags(flags);
 	cli();
 	skb = sk->partial;
+	if (skb) {
+		sk->partial = NULL;
+		del_timer(&sk->partial_timer);
+	}
 	restore_flags(flags);
 	return skb;
 }
@@ -604,14 +608,14 @@ void tcp_enqueue_partial(struct sk_buff * skb, struct sock * sk)
 	save_flags(flags);
 	cli();
 	tmp = sk->partial;
-	/*if (tmp)
+	if (tmp)
 		del_timer(&sk->partial_timer);
 	sk->partial = skb;
 	sk->partial_timer.expires = HZ;
 	sk->partial_timer.function = (void (*)(unsigned long)) tcp_send_partial;
 	sk->partial_timer.data = (unsigned long) sk;
 	add_timer(&sk->partial_timer);
-	restore_flags(flags);*/
+	restore_flags(flags);
 	if (tmp)
 		tcp_send_skb(sk, tmp);
 }

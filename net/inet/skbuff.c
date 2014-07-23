@@ -335,7 +335,7 @@ struct sk_buff *skb_peek_copy(struct sk_buff *volatile* list)
 		if(skb_peek(list)!=orig)	/* List changed go around another time */
 		{
 			restore_flags(flags);
-			//newsk->sk=NULL;
+			newsk->sk=NULL;
 			newsk->free=1;
 			newsk->mem_addr=newsk;
 			newsk->mem_len=len;
@@ -351,9 +351,9 @@ struct sk_buff *skb_peek_copy(struct sk_buff *volatile* list)
 		newsk->next=NULL;
 		newsk->prev=NULL;
 		newsk->mem_addr=newsk;
-		//newsk->h.raw+=((char *)newsk-(char *)orig);
+		newsk->h.raw+=((char *)newsk-(char *)orig);
 		newsk->link3=NULL;
-		//newsk->sk=NULL;
+		newsk->sk=NULL;
 		newsk->free=1;
 	}
 	while(0);

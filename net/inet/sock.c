@@ -900,7 +900,40 @@ inet_create(struct socket *sock, int protocol)
   sk->send_head = NULL;
   sk->timeout = 0;
   sk->broadcast = 0;
+  sk->timer.data = (unsigned long)sk;
+  sk->timer.function = &net_timer;
+  sk->back_log = NULL;
+  sk->blog = 0;
+  sock->data =(void *) sk;
+  sk->dummy_th.doff = sizeof(sk->dummy_th)/4;
+  sk->dummy_th.res1=0;
+  sk->dummy_th.res2=0;
+  sk->dummy_th.urg_ptr = 0;
+  sk->dummy_th.fin = 0;
+  sk->dummy_th.syn = 0;
+  sk->dummy_th.rst = 0;
+  sk->dummy_th.psh = 0;
+  sk->dummy_th.ack = 0;
+  sk->dummy_th.urg = 0;
+  sk->dummy_th.dest = 0;
+  sk->ip_tos=0;
+  sk->ip_ttl=64;
   
+  sk->state_change = def_callback1;
+  sk->data_ready = def_callback2;
+  sk->write_space = def_callback1;
+  sk->error_report = def_callback1;
+  if (sk->num) {
+	put_sock(sk->num, sk);
+	sk->dummy_th.source = ntohs(sk->num);
+  }
+  if (sk->prot->init) {
+	err = sk->prot->init(sk);
+	if (err != 0) {
+		destroy_sock(sk);
+		return(err);
+	}
+  }
   return(0);
 }
 
@@ -1031,9 +1064,9 @@ outside_loop:
 
   remove_sock(sk);
   put_sock(snum, sk);
-  //sk->dummy_th.source = ntohs(sk->num);
-  //sk->daddr = 0;
-  //sk->dummy_th.dest = 0;
+  sk->dummy_th.source = ntohs(sk->num);
+  sk->daddr = 0;
+  sk->dummy_th.dest = 0;
   return(0);
 }
 
@@ -1070,7 +1103,7 @@ inet_connect(struct socket *sock, struct sockaddr * uaddr,
 		if (sk->num == 0) 
 			return(-EAGAIN);
 		put_sock(sk->num, sk);
-	//	sk->dummy_th.source = htons(sk->num);
+		sk->dummy_th.source = htons(sk->num);
 	}
 
 	if (sk->prot->connect == NULL) 
@@ -1222,10 +1255,10 @@ inet_getname(struct socket *sock, struct sockaddr *uaddr,
   }
   if (peer) {
 	if (!tcp_connected(sk->state)) return(-ENOTCONN);
-	//sin.sin_port = sk->dummy_th.dest;
+	sin.sin_port = sk->dummy_th.dest;
 	sin.sin_addr.s_addr = sk->daddr;
   } else {
-	//sin.sin_port = sk->dummy_th.source;
+	sin.sin_port = sk->dummy_th.source;
 	if (sk->saddr == 0) sin.sin_addr.s_addr = my_addr();
 	  else sin.sin_addr.s_addr = sk->saddr;
   }
@@ -1254,7 +1287,7 @@ inet_read(struct socket *sock, char *ubuf, int size, int noblock)
 	sk->num = get_new_socknum(sk->prot, 0);
 	if (sk->num == 0) return(-EAGAIN);
 	put_sock(sk->num, sk);
-	//sk->dummy_th.source = ntohs(sk->num);
+	sk->dummy_th.source = ntohs(sk->num);
   }
   return(sk->prot->read(sk, (unsigned char *) ubuf, size, noblock,0));
 }
@@ -1277,7 +1310,7 @@ inet_recv(struct socket *sock, void *ubuf, int size, int noblock,
 	sk->num = get_new_socknum(sk->prot, 0);
 	if (sk->num == 0) return(-EAGAIN);
 	put_sock(sk->num, sk);
-	//sk->dummy_th.source = ntohs(sk->num);
+	sk->dummy_th.source = ntohs(sk->num);
   }
   return(sk->prot->read(sk, (unsigned char *) ubuf, size, noblock, flags));
 }
@@ -1303,7 +1336,7 @@ inet_write(struct socket *sock, char *ubuf, int size, int noblock)
 	sk->num = get_new_socknum(sk->prot, 0);
 	if (sk->num == 0) return(-EAGAIN);
 	put_sock(sk->num, sk);
-	//sk->dummy_th.source = ntohs(sk->num);
+	sk->dummy_th.source = ntohs(sk->num);
   }
 
   return(sk->prot->write(sk, (unsigned char *) ubuf, size, noblock, 0));
@@ -1331,7 +1364,7 @@ inet_send(struct socket *sock, void *ubuf, int size, int noblock,
 	sk->num = get_new_socknum(sk->prot, 0);
 	if (sk->num == 0) return(-EAGAIN);
 	put_sock(sk->num, sk);
-	//sk->dummy_th.source = ntohs(sk->num);
+	sk->dummy_th.source = ntohs(sk->num);
   }
 
   return(sk->prot->write(sk, (unsigned char *) ubuf, size, noblock, flags));
@@ -1361,7 +1394,7 @@ inet_sendto(struct socket *sock, void *ubuf, int size, int noblock,
 	sk->num = get_new_socknum(sk->prot, 0);
 	if (sk->num == 0) return(-EAGAIN);
 	put_sock(sk->num, sk);
-	//sk->dummy_th.source = ntohs(sk->num);
+	sk->dummy_th.source = ntohs(sk->num);
   }
 
   return(sk->prot->sendto(sk, (unsigned char *) ubuf, size, noblock, flags, 
@@ -1388,7 +1421,7 @@ inet_recvfrom(struct socket *sock, void *ubuf, int size, int noblock,
 	sk->num = get_new_socknum(sk->prot, 0);
 	if (sk->num == 0) return(-EAGAIN);
 	put_sock(sk->num, sk);
-	//sk->dummy_th.source = ntohs(sk->num);
+	sk->dummy_th.source = ntohs(sk->num);
   }
 
   return(sk->prot->recvfrom(sk, (unsigned char *) ubuf, size, noblock, flags,
@@ -1435,8 +1468,11 @@ inet_select(struct socket *sock, int sel_type, select_table *wait )
 	return(0);
   }
 
-  
-  //return(sk->prot->select(sk, sel_type, wait));
+  if (sk->prot->select == NULL) {
+	DPRINTF((DBG_INET, "select on non-selectable socket.\n"));
+	return(0);
+  }
+  return(sk->prot->select(sk, sel_type, wait));
 }
 
 
@@ -1650,7 +1686,23 @@ struct sock *get_sock(struct proto *prot, unsigned short num,
    * the other ones, we can just be careful about picking our
    * socket number when we choose an arbitrary one.
    */
-  
+  for(s = prot->sock_array[hnum & (SOCK_ARRAY_SIZE - 1)];
+      s != NULL; s = s->next) 
+  {
+	if (s->num != hnum) 
+		continue;
+	if(s->dead && (s->state == TCP_CLOSE))
+		continue;
+	if(prot == &udp_prot)
+		return s;
+	if(ip_addr_match(s->daddr,raddr)==0)
+		continue;
+	if (s->dummy_th.dest != rnum && s->dummy_th.dest != 0) 
+		continue;
+	if(ip_addr_match(s->saddr,laddr) == 0)
+		continue;
+	return(s);
+  }
   return(NULL);
 }
 

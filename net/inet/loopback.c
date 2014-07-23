@@ -99,7 +99,7 @@ loopback_init(struct device *dev)
   dev->hard_start_xmit	= loopback_xmit;
   dev->open		= NULL;
 #if 1
-  //dev->hard_header	= eth_header;
+  dev->hard_header	= eth_header;
   dev->add_arp		= NULL;
   dev->hard_header_len	= ETH_HLEN;		/* 14			*/
   dev->addr_len		= ETH_ALEN;		/* 6			*/
@@ -115,7 +115,7 @@ loopback_init(struct device *dev)
   dev->type_trans	= NULL;
   dev->rebuild_header	= NULL;
 #endif
- // dev->queue_xmit	= dev_queue_xmit;
+  dev->queue_xmit	= dev_queue_xmit;
 
   /* New-style flags. */
   //dev->flags		= IFF_LOOPBACK;
@@ -124,7 +124,7 @@ loopback_init(struct device *dev)
   //dev->pa_brdaddr	= in_aton("127.255.255.255");
   //dev->pa_mask		= in_aton("255.0.0.0");
   dev->pa_alen		= sizeof(unsigned long);
-  //dev->priv = kmalloc(sizeof(struct enet_statistics), GFP_KERNEL);
+  dev->priv = kmalloc(sizeof(struct enet_statistics), GFP_KERNEL);
   memset(dev->priv, 0, sizeof(struct enet_statistics));
   dev->get_stats = get_stats;
   
