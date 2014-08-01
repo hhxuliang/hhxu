@@ -238,7 +238,7 @@ static int neprobe1(int ioaddr, struct device *dev, int verbose)
     ei_status.block_output = &ne_block_output;
     
 	NS8390_init(dev, 0);
-	ei_open(&eth0_dev);
+	//ei_open(&eth0_dev);
 	return dev->base_addr;
 }
 
