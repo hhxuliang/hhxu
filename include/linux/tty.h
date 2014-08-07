@@ -17,7 +17,7 @@ struct tty_queue {
 	unsigned long data;
 	unsigned long head;
 	unsigned long tail;
-	struct task_struct * proc_list;
+	struct wait_queue * proc_list;
 	char buf[TTY_BUF_SIZE];
 };
 

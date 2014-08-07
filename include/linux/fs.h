@@ -73,7 +73,7 @@ struct buffer_head {
 	unsigned char b_dirt;		/* 0-clean,1-dirty */
 	unsigned char b_count;		/* users using this block */
 	unsigned char b_lock;		/* 0 - ok, 1 -locked */
-	struct task_struct * b_wait;
+	struct wait_queue * b_wait;
 	struct buffer_head * b_prev;
 	struct buffer_head * b_next;
 	struct buffer_head * b_prev_free;
@@ -99,7 +99,7 @@ struct m_inode {
 	unsigned char i_nlinks;
 	unsigned short i_zone[9];
 /* these are in memory also */
-	struct task_struct * i_wait;
+	struct wait_queue * i_wait;
 	unsigned long i_atime;
 	unsigned long i_ctime;
 	unsigned short i_dev;
@@ -137,7 +137,7 @@ struct super_block {
 	struct m_inode * s_isup;
 	struct m_inode * s_imount;
 	unsigned long s_time;
-	struct task_struct * s_wait;
+	struct wait_queue * s_wait;
 	unsigned char s_lock;
 	unsigned char s_rd_only;
 	unsigned char s_dirt;

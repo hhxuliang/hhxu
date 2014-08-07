@@ -745,12 +745,14 @@ inet_listen(struct socket *sock, int backlog)
 
 static void def_callback1(struct sock *sk)
 {
-	
+	if(!sk->dead)
+		wake_up_interruptible(sk->sleep);
 }
 
 static void def_callback2(struct sock *sk,int len)
 {
-	
+	if(!sk->dead)
+		wake_up_interruptible(sk->sleep);
 }
 
 

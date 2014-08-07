@@ -17,6 +17,12 @@
 #define WSTOPSIG(s)	(((s)>>8)&0xFF)
 #define WIFSIGNALED(s)	(((unsigned int)(s)-1 & 0xFFFF) < 0xFF)
 
+struct wait_queue {
+	struct task_struct * task;
+	struct wait_queue * next;
+};
+
+
 pid_t wait(int *stat_loc);
 pid_t waitpid(pid_t pid, int *stat_loc, int options);
 

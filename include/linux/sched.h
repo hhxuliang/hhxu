@@ -10,7 +10,10 @@
 #include <linux/head.h>
 #include <linux/fs.h>
 #include <linux/mm.h>
+#include <sys/wait.h>
 #include <signal.h>
+#include <asm/system.h>
+
 
 #if (NR_OPEN > 32)
 #error "Currently the close-on-exec-flags are in one word, max 32 files/proc"
@@ -144,9 +147,9 @@ extern long startup_time;
 
 #define CURRENT_TIME (startup_time+jiffies/HZ)
 
-extern void sleep_on(struct task_struct ** p);
-extern void interruptible_sleep_on(struct task_struct ** p);
-extern void wake_up(struct task_struct ** p);
+extern void sleep_on(struct wait_queue ** p);
+extern void interruptible_sleep_on(struct wait_queue ** p);
+extern void wake_up(struct wait_queue ** p);
 
 /*
  * Entry into gdt where to find first TSS. 0-nul, 1-cs, 2-ds, 3-syscall
@@ -252,5 +255,68 @@ static inline unsigned long _get_base(char * addr)
 unsigned long __limit; \
 __asm__("lsll %1,%0\n\tincl %0":"=r" (__limit):"r" (segment)); \
 __limit;})
+
+extern inline void add_wait_queue(struct wait_queue ** p, struct wait_queue * wait)
+{
+	unsigned long flags;
+
+#ifdef DEBUG
+	if (wait->next) {
+		unsigned long pc;
+		__asm__ __volatile__("call 1f\n"
+			"1:\tpopl %0":"=r" (pc));
+		printk("add_wait_queue (%08x): wait->next = %08x\n",pc,(unsigned long) wait->next);
+	}
+#endif
+	save_flags(flags);
+	cli();
+	if (!*p) {
+		wait->next = wait;
+		*p = wait;
+	} else {
+		wait->next = (*p)->next;
+		(*p)->next = wait;
+	}
+	restore_flags(flags);
+}
+
+extern inline void remove_wait_queue(struct wait_queue ** p, struct wait_queue * wait)
+{
+	unsigned long flags;
+	struct wait_queue * tmp;
+#ifdef DEBUG
+	unsigned long ok = 0;
+#endif
+
+	save_flags(flags);
+	cli();
+	if ((*p == wait) &&
+#ifdef DEBUG
+	    (ok = 1) &&
+#endif
+	    ((*p = wait->next) == wait)) {
+		*p = NULL;
+	} else {
+		tmp = wait;
+		while (tmp->next != wait) {
+			tmp = tmp->next;
+#ifdef DEBUG
+			if (tmp == *p)
+				ok = 1;
+#endif
+		}
+		tmp->next = wait->next;
+	}
+	wait->next = NULL;
+	restore_flags(flags);
+#ifdef DEBUG
+	if (!ok) {
+		printk("removed wait_queue not on list.\n");
+		printk("list = %08x, queue = %08x\n",(unsigned long) p, (unsigned long) wait);
+		__asm__("call 1f\n1:\tpopl %0":"=r" (ok));
+		printk("eip = %08x\n",ok);
+	}
+#endif
+}
 
 #endif

@@ -22,7 +22,10 @@
 #include <linux/fs.h>
 #include <string.h>
 #include <linux/socket.h>
-#include <errno.h>
+#include <linux/errno.h>
+#include <linux/fcntl.h>
+#include <linux/if_arp.h>
+#include <linux/if.h>	/* For the statistics structure. */
 #include <asm/system.h>
 #include <asm/segment.h>
 #include <asm/io.h>
@@ -103,9 +106,9 @@ loopback_init(struct device *dev)
   dev->add_arp		= NULL;
   dev->hard_header_len	= ETH_HLEN;		/* 14			*/
   dev->addr_len		= ETH_ALEN;		/* 6			*/
-  //dev->type		= ARPHRD_ETHER;		/* 0x0001		*/
-  //dev->type_trans	= eth_type_trans;
-  //dev->rebuild_header	= eth_rebuild_header;
+  dev->type		= ARPHRD_ETHER;		/* 0x0001		*/
+  dev->type_trans	= eth_type_trans;
+  dev->rebuild_header	= eth_rebuild_header;
 #else
   dev->hard_header_length = 0;
   dev->add_arp		= NULL;
@@ -118,11 +121,11 @@ loopback_init(struct device *dev)
   dev->queue_xmit	= dev_queue_xmit;
 
   /* New-style flags. */
-  //dev->flags		= IFF_LOOPBACK;
-  //dev->family		= AF_INET;
- // dev->pa_addr		= in_aton("127.0.0.1");
-  //dev->pa_brdaddr	= in_aton("127.255.255.255");
-  //dev->pa_mask		= in_aton("255.0.0.0");
+  dev->flags		= IFF_LOOPBACK;
+  dev->family		= AF_INET;
+  dev->pa_addr		= in_aton("127.0.0.1");
+  dev->pa_brdaddr	= in_aton("127.255.255.255");
+  dev->pa_mask		= in_aton("255.0.0.0");
   dev->pa_alen		= sizeof(unsigned long);
   dev->priv = kmalloc(sizeof(struct enet_statistics), GFP_KERNEL);
   memset(dev->priv, 0, sizeof(struct enet_statistics));

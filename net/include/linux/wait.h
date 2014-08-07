@@ -6,10 +6,7 @@
 
 #define __WCLONE	0x80000000
 
-struct wait_queue {
-	struct task_struct * task;
-	struct wait_queue * next;
-};
+
 
 struct semaphore {
 	int count;

@@ -23,7 +23,7 @@ struct request request[NR_REQUEST];
 /*
  * used to wait on when there are no free requests
  */
-struct task_struct * wait_for_request = NULL;
+struct wait_queue * wait_for_request = NULL;
 
 /* blk_dev_struct is:
  *	do_request-address

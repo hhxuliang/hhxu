@@ -27,7 +27,7 @@ struct request {
 	unsigned long sector;
 	unsigned long nr_sectors;
 	char * buffer;
-	struct task_struct * waiting;
+	struct wait_queue * waiting;
 	struct buffer_head * bh;
 	struct request * next;
 };
@@ -49,7 +49,7 @@ struct blk_dev_struct {
 
 extern struct blk_dev_struct blk_dev[NR_BLK_DEV];
 extern struct request request[NR_REQUEST];
-extern struct task_struct * wait_for_request;
+extern struct wait_queue * wait_for_request;
 
 #ifdef MAJOR_NR
 

@@ -121,7 +121,7 @@ static unsigned char seek_track = 0;
 static unsigned char current_track = 255;
 static unsigned char command = 0;
 unsigned char selected = 0;
-struct task_struct * wait_on_floppy_select = NULL;
+struct wait_queue * wait_on_floppy_select = NULL;
 
 void floppy_deselect(unsigned int nr)
 {

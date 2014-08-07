@@ -41,6 +41,7 @@
 #include <linux/errno.h>
 #include <linux/timer.h>
 #include <linux/kernel.h>
+#include <linux/if.h>
 #include <asm/system.h>
 #include <asm/segment.h>
 #include "udp.h"
@@ -75,7 +76,7 @@ packet_rcv(struct sk_buff *skb, struct device *dev,  struct packet_type *pt)
   }
   sk->rmem_alloc += skb->mem_len;
   skb_queue_tail(&sk->rqueue,skb);
-  //wake_up_interruptible(sk->sleep);
+  wake_up_interruptible(sk->sleep);
   release_sock(sk);
   return(0);
 }
@@ -136,7 +137,7 @@ packet_sendto(struct sock *sk, unsigned char *from, int len,
   skb->len = len;
   skb->next = NULL;
   skb->arp = 1;
-  if (dev->flags ) dev->queue_xmit(skb, dev, sk->priority);
+  if (dev->flags & IFF_UP) dev->queue_xmit(skb, dev, sk->priority);
     else kfree_skb(skb, FREE_WRITE);
   return(len);
 }

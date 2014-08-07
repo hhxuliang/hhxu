@@ -149,57 +149,103 @@ int sys_pause(void)
 	return 0;
 }
 
-void sleep_on(struct task_struct **p)
+static inline void __sleep_on(struct wait_queue **p, int state)
 {
-	struct task_struct *tmp;
+	unsigned long flags;
+	struct wait_queue wait = { current, NULL };
 
 	if (!p)
 		return;
-	if (current == &(init_task.task))
+	if (current == task[0])
 		panic("task[0] trying to sleep");
-	tmp = *p;
-	*p = current;
-	current->state = TASK_UNINTERRUPTIBLE;
+	current->state = state;
+	add_wait_queue(p, &wait);
+	save_flags(flags);
+	sti();
 	schedule();
-	if (tmp)
-		tmp->state=0;
+	remove_wait_queue(p, &wait);
+	restore_flags(flags);
 }
 
-void interruptible_sleep_on(struct task_struct **p)
+void interruptible_sleep_on(struct wait_queue **p)
 {
-	struct task_struct *tmp;
+	__sleep_on(p,TASK_INTERRUPTIBLE);
+}
 
-	if (!p)
+void sleep_on(struct wait_queue **p)
+{
+	__sleep_on(p,TASK_UNINTERRUPTIBLE);
+}
+
+
+/*
+ * wake_up doesn't wake up stopped processes - they have to be awakened
+ * with signals or similar.
+ *
+ * Note that this doesn't need cli-sti pairs: interrupts may not change
+ * the wait-queue structures directly, but only call wake_up() to wake
+ * a process. The process itself must remove the queue once it has woken.
+ */
+void wake_up(struct wait_queue **q)
+{
+	struct wait_queue *tmp;
+	struct task_struct * p;
+
+	if (!q || !(tmp = *q))
 		return;
-	if (current == &(init_task.task))
-		panic("task[0] trying to sleep");
-	tmp=*p;
-	*p=current;
-repeat:	current->state = TASK_INTERRUPTIBLE;
-	schedule();
-	if (*p && *p != current) {
-		(**p).state=0;
-		goto repeat;
-	}
-	*p=NULL;
-	if (tmp)
-		tmp->state=0;
+	do {
+		if ((p = tmp->task) != NULL) {
+			if ((p->state == TASK_UNINTERRUPTIBLE) ||
+			    (p->state == TASK_INTERRUPTIBLE)) {
+				p->state = TASK_RUNNING;
+				//if (p->counter > current->counter)
+				//	need_resched = 1;
+			}
+		}
+		if (!tmp->next) {
+			printk("wait_queue is bad (eip = %08lx)\n",((unsigned long *) q)[-1]);
+			printk("        q = %p\n",q);
+			printk("       *q = %p\n",*q);
+			printk("      tmp = %p\n",tmp);
+			break;
+		}
+		tmp = tmp->next;
+	} while (tmp != *q);
 }
 
-void wake_up(struct task_struct **p)
+void wake_up_interruptible(struct wait_queue **q)
 {
-	if (p && *p) {
-		(**p).state=0;
-		*p=NULL;
-	}
+	struct wait_queue *tmp;
+	struct task_struct * p;
+
+	if (!q || !(tmp = *q))
+		return;
+	do {
+		if ((p = tmp->task) != NULL) {
+			if (p->state == TASK_INTERRUPTIBLE) {
+				p->state = TASK_RUNNING;
+				//if (p->counter > current->counter)
+				//	need_resched = 1;
+			}
+		}
+		if (!tmp->next) {
+			printk("wait_queue is bad (eip = %08lx)\n",((unsigned long *) q)[-1]);
+			printk("        q = %p\n",q);
+			printk("       *q = %p\n",*q);
+			printk("      tmp = %p\n",tmp);
+			break;
+		}
+		tmp = tmp->next;
+	} while (tmp != *q);
 }
+
 
 /*
  * OK, here are some floppy things that shouldn't be in the kernel
  * proper. They are here because the floppy needs a timer, and this
  * was the easiest way of doing it.
  */
-static struct task_struct * wait_motor[4] = {NULL,NULL,NULL,NULL};
+static struct wait_queue * wait_motor[4] = {NULL,NULL,NULL,NULL};
 static int  mon_timer[4]={0,0,0,0};
 static int moff_timer[4]={0,0,0,0};
 unsigned char current_DOR = 0x0C;

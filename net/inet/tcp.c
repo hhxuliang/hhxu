@@ -2549,6 +2549,8 @@ static inline int tcp_urg(struct sock *sk, struct tcphdr *th,
 
 	/* ok, got the correct packet, update info */
 	sk->urg_data = URG_VALID | *(ptr + (unsigned char *) th);
+	if (!sk->dead)
+		wake_up_interruptible(sk->sleep);
 	return 0;
 }
 

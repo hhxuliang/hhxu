@@ -113,7 +113,8 @@ net_timer (unsigned long data)
   /* Always see if we need to send an ack. */
   if (sk->ack_backlog) {
     sk->prot->read_wakeup (sk);
-    
+    if (! sk->dead)
+      wake_up_interruptible (sk->sleep);
   }
 
   /* Now we need to figure out why the socket was on the timer. */
@@ -147,7 +148,8 @@ net_timer (unsigned long data)
 	delete_timer (sk);
 	/* Kill the ARP entry in case the hardware has changed. */
 	arp_destroy_maybe (sk->daddr);
-	
+	if (!sk->dead)
+	  wake_up_interruptible (sk->sleep);
 	sk->shutdown = SHUTDOWN_MASK;
 	reset_timer (sk, TIME_DESTROY, TCP_DONE_TIME);
 	release_sock (sk);
@@ -216,7 +218,8 @@ net_timer (unsigned long data)
 	  sk->err = ETIMEDOUT;
 	  if (sk->state == TCP_FIN_WAIT1 || sk->state == TCP_FIN_WAIT2) {
 	    sk->state = TCP_TIME_WAIT;
-	 
+	    if (!sk->dead)
+	      wake_up_interruptible (sk->sleep);
 	    release_sock (sk);
 	  } else {
 	    sk->prot->close (sk, 1);

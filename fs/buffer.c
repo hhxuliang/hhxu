@@ -33,7 +33,7 @@ extern void invalidate_inodes(int);
 struct buffer_head * start_buffer = (struct buffer_head *) &end;
 struct buffer_head * hash_table[NR_HASH];
 static struct buffer_head * free_list;
-static struct task_struct * buffer_wait = NULL;
+static struct wait_queue * buffer_wait = NULL;
 int NR_BUFFERS = 0;
 
 static inline void wait_on_buffer(struct buffer_head * bh)
