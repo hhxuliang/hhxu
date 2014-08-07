@@ -3,3 +3,6 @@ There are more diffrence between linux 1.0 and 0.11, such as timer, V0.11 use a 
 
 2014-08-01
 Add the socket system call named sys_socketcall, this function is copy from linux1.0 that is similarity with current linux kernel sys_socketcall.
+
+2014-8-7
+Upgrade the function related with task status change function: sleep_on sleep_interupte_on wake_up for better logic reference linux1.0. The new functions use loop list to record tasks status with resource requirment so that make sleep_on sleep_interupte_on wake_up with a unified logic.
