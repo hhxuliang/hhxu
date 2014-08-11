@@ -1790,11 +1790,17 @@ inet_fioctl(struct inode *inode, struct file *file,
 
   return(ret);
 }
-
-
-
-
-
+static struct file_operations inet_fops = {
+  NULL,		/* LSEEK	*/
+  NULL,		/* READ		*/
+  NULL,		/* WRITE	*/
+  NULL,		/* READDIR	*/
+  NULL,		/* SELECT	*/
+  inet_fioctl,	/* IOCTL	*/
+  NULL,		/* MMAP		*/
+  NULL,		/* OPEN		*/
+  NULL		/* CLOSE	*/
+};
 
 
 static struct proto_ops inet_proto_ops = {

@@ -60,18 +60,6 @@ static int sock_ioctl(struct inode *inode, struct file *file,
 		      unsigned int cmd, unsigned long arg);
 static void wake_up_interruptible(struct wait_queue ** p){}
 
-struct file_operations {
-	int (*lseek) (struct inode *, struct file *, off_t, int);
-	int (*read) (struct inode *, struct file *, char *, int);
-	int (*write) (struct inode *, struct file *, char *, int);
-	int (*readdir) (struct inode *, struct file *, struct dirent *, int);
-	int (*select) (struct inode *, struct file *, int, select_table *);
-	int (*ioctl) (struct inode *, struct file *, unsigned int, unsigned long);
-	int (*mmap) (struct inode *, struct file *, unsigned long, size_t, int, unsigned long);
-	int (*open) (struct inode *, struct file *);
-	void (*release) (struct inode *, struct file *);
-	int (*fsync) (struct inode *, struct file *);
-};
 
 
 static struct file_operations socket_file_ops = {

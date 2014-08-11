@@ -22,6 +22,16 @@ struct wait_queue {
 	struct wait_queue * next;
 };
 
+struct select_table_entry {
+	struct wait_queue wait;
+	struct wait_queue ** wait_address;
+};
+
+typedef struct select_table_struct {
+	int nr;
+	struct select_table_entry * entry;
+} select_table;
+#define __MAX_SELECT_TABLE_ENTRIES (4096 / sizeof (struct select_table_entry))
 
 pid_t wait(int *stat_loc);
 pid_t waitpid(pid_t pid, int *stat_loc, int options);

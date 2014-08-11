@@ -54,6 +54,9 @@ void buffer_init(long buffer_end);
 
 #define INODES_PER_BLOCK ((BLOCK_SIZE)/(sizeof (struct d_inode)))
 #define DIR_ENTRIES_PER_BLOCK ((BLOCK_SIZE)/(sizeof (struct dir_entry)))
+#define SEL_IN		1
+#define SEL_OUT		2
+#define SEL_EX		4
 
 #define PIPE_HEAD(inode) ((inode).i_zone[0])
 #define PIPE_TAIL(inode) ((inode).i_zone[1])
@@ -157,6 +160,18 @@ struct d_super_block {
 struct dir_entry {
 	unsigned short inode;
 	char name[NAME_LEN];
+};
+struct file_operations {
+	int (*lseek) (struct inode *, struct file *, off_t, int);
+	int (*read) (struct inode *, struct file *, char *, int);
+	int (*write) (struct inode *, struct file *, char *, int);
+	int (*readdir) (struct inode *, struct file *, struct dirent *, int);
+	int (*select) (struct inode *, struct file *, int);
+	int (*ioctl) (struct inode *, struct file *, unsigned int, unsigned long);
+	int (*mmap) (struct inode *, struct file *, unsigned long, size_t, int, unsigned long);
+	int (*open) (struct inode *, struct file *);
+	void (*release) (struct inode *, struct file *);
+	int (*fsync) (struct inode *, struct file *);
 };
 
 extern struct m_inode inode_table[NR_INODE];

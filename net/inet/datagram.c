@@ -170,5 +170,35 @@ void skb_copy_datagram(struct sk_buff *skb, int offset, char *to, int size)
 
 int datagram_select(struct sock *sk, int sel_type, select_table *wait)
 {
+	select_wait(sk->sleep, wait);
+	switch(sel_type)
+	{
+		case SEL_IN:
+			if (sk->type==SOCK_SEQPACKET && sk->state==TCP_CLOSE)
+			{
+				return(1);
+			}
+			if (sk->rqueue != NULL || sk->err != 0)
+			{	/* This appears to be consistent
+				   with other stacks */
+				return(1);
+			}
+			return(0);
 
+		case SEL_OUT:
+			if (sk->prot && sk->prot->wspace(sk) >= MIN_WRITE_SPACE)
+			{
+				return(1);
+			}
+			if (sk->prot==NULL && sk->sndbuf-sk->wmem_alloc >= MIN_WRITE_SPACE)
+			{
+				return(1);
+			}
+			return(0);
+		case SEL_EX:
+			if (sk->err)
+				return(1); /* Socket has gone into error state (eg icmp error) */
+			return(0);
+	}
+	return(0);
 }
