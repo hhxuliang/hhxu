@@ -103,10 +103,14 @@ static int
 get_fd(struct inode *inode)
 {
   int fd;
-  struct file *file;
-
+  struct file *file=NULL;
+  int i=0;
   /* Find a file descriptor suitable for return to the user. */
 //  file = get_empty_filp();
+  file=0+file_table;
+  for (i=0 ; i<NR_FILE ; i++,file++)
+	  if (!file->f_count) break;
+
   if (!file) return(-1);
   for (fd = 0; fd < NR_OPEN; ++fd)
 	if (!current->filp[fd]) break;
@@ -116,7 +120,7 @@ get_fd(struct inode *inode)
   }
   //FD_CLR(fd, &current->close_on_exec);
   current->filp[fd] = file;
-  //file->f_op = &socket_file_ops;
+  file->f_op = &socket_file_ops;
   file->f_mode = 3;
   file->f_flags = 0;
   file->f_count = 1;

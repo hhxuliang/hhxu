@@ -122,6 +122,7 @@ struct file {
 	unsigned short f_count;
 	struct m_inode * f_inode;
 	off_t f_pos;
+	struct file_operations * f_op;//extend for socket file struct to call system function
 };
 
 struct super_block {

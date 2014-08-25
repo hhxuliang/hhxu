@@ -182,6 +182,7 @@ int sys_open(const char * filename,int flag,int mode)
 	f->f_count = 1;
 	f->f_inode = inode;
 	f->f_pos = 0;
+	f->f_op = 0;//socket file struct will initialize f_op to a valid function pointer struct
 	return (fd);
 }
 

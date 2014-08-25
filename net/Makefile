@@ -1,5 +1,5 @@
 CC	=gcc -mcpu=i386
-CFLAGS	=-Wall -O -g -fstrength-reduce -fomit-frame-pointer \
+CFLAGS	=-Wall -O -g -fstrength-reduce -fomit-frame-pointer  \
 	-finline-functions -nostdinc -I../include -I./include -I. -I./driver -I./inet
 AS	=as
 AR	=ar

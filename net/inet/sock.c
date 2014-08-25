@@ -1841,7 +1841,7 @@ void inet_proto_init(struct ddi_proto *pro)
   /* Set up our UNIX VFS major device. */
 
   /* Tell SOCKET that we are alive... */
-//  (void) sock_register(inet_proto_ops.family, &inet_proto_ops);
+  (void) sock_register(inet_proto_ops.family, &inet_proto_ops);
 
   seq_offset = CURRENT_TIME*250;
 

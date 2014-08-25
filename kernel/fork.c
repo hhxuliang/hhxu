@@ -34,6 +34,7 @@ int verify_area(int type,void * addr,int size)
 		write_verify(start);
 		start += 4096;
 	}
+	return 0;
 }
 
 int copy_mem(int nr,struct task_struct * p)
