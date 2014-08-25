@@ -6,3 +6,6 @@ Add the socket system call named sys_socketcall, this function is copy from linu
 
 2014-8-7
 Upgrade the function related with task status change function: sleep_on sleep_interupte_on wake_up for better logic reference linux1.0. The new functions use loop list to record tasks status with resource requirment so that make sleep_on sleep_interupte_on wake_up with a unified logic.
+
+2014-8-25
+Change logic related with socket system call: socketcall(create file struct for socket as paremeter) and ioctl to open network dev. The major logic reference to the linux1.0, ioctl function is different between 0.11 and 1.0. Both of the two version use file to act the interface of device, but the additional operation function to the system call function, but 0.11 use device type to identify the funtion pointer. So that we must add this function pointer in file struct.
