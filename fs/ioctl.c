@@ -26,6 +26,21 @@ static ioctl_ptr ioctl_table[]={
 	NULL,		/* /dev/lp */
 	NULL};		/* named pipes */
 	
+int sys_netioctl(unsigned int fd, unsigned int cmd, unsigned long arg)
+{	
+	
+	struct file * filp = current->filp[fd];
+	int mode;
+	printk("(%d %d)",fd,cmd);
+	if (fd >= NR_OPEN || !(filp = current->filp[fd]))
+		return -EBADF;
+
+	if(filp->f_op != NULL)
+		return filp->f_op->ioctl(filp->f_inode,filp,cmd,arg); 
+	else
+		printk("File %d is invalid!\n",fd);
+	
+}
 
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg)
 {	
@@ -37,11 +52,6 @@ int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg)
 	mode=filp->f_inode->i_mode;
 	if (!S_ISCHR(mode) && !S_ISBLK(mode))
 		return -EINVAL;
-	if(filp->f_op!=NULL)//It is only used by socket file struct
-	{
-		filp->f_op->ioctl(filp->f_inode,filp,cmd,arg);
-		return;
-	}
 	dev = filp->f_inode->i_zone[0];
 	if (MAJOR(dev) >= NRDEVS)
 		return -ENODEV;
