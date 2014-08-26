@@ -9,3 +9,7 @@ Upgrade the function related with task status change function: sleep_on sleep_in
 
 2014-8-25
 Change logic related with socket system call: socketcall(create file struct for socket as paremeter) and ioctl to open network dev. The major logic reference to the linux1.0, ioctl function is different between 0.11 and 1.0. Both of the two version use file to act the interface of device, but the additional operation function to the system call function, but 0.11 use device type to identify the funtion pointer. So that we must add this function pointer in file struct.
+
+2014-8-26
+Add a system call named netioctl that can contral network interface. The additional system call netioctl is unnecessary because there is a common system call name ioctl that is interface for file operation. But enhance the ioctl for network is fault, so that I add netioctl for network. Mybe it should not be add.
+The additional system call netioctl can be used by process in userspace to up the network interface, ip address and so on.
